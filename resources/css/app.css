@@ -1,0 +1,43 @@
+/* Importación de Bootstrap 5 y Font Awesome (Si compilas con Vite/NPM) */
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* Variables de Color Institucionales IMSS */
+:root {
+    --imss-verde-principal: #1C6046;
+    --imss-verde-oscuro: #134230;
+    --imss-dorado: #B19055;
+    --imss-gris-fondo: #F8F9FA;
+}
+
+/* Estilos Globales */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--imss-gris-fondo);
+    color: #333333;
+}
+
+/* Estilos personalizados para botones y controles IMSS */
+.btn-imss-primary {
+    background-color: var(--imss-verde-principal) !important;
+    border-color: var(--imss-verde-principal) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.btn-imss-primary:hover,
+.btn-imss-primary:focus {
+    background-color: var(--imss-verde-oscuro) !important;
+    border-color: var(--imss-verde-oscuro) !important;
+    color: #ffffff !important;
+}
+
+.form-control-imss:focus,
+.form-select-imss:focus {
+    border-color: var(--imss-dorado) !important;
+    box-shadow: 0 0 0 0.25rem rgba(177, 144, 85, 0.25) !important;
+}
+
+/* Ajustes para forzar la conversión a mayúsculas si es necesario */
+.text-uppercase-input {
+    text-transform: uppercase;
+}
