@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Category;
-use App\Events\TicketUpdated;
+use App\Models\TicketMessage;
 use App\Models\Mensaje;
+use App\Events\TicketUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 class TicketController extends Controller
 {
     /**
@@ -56,17 +58,13 @@ class TicketController extends Controller
             'user_id'              => Auth::id(),
             'category_id'          => $request->category_id,
             'title'                => strtoupper($request->title),
+            'clues_at_report'      => strtoupper(Auth::user()->clues ?? 'SIN CLUES'),
             'description'          => strtoupper($request->description),
             'status'               => 'PENDIENTE',
             'department_at_report' => strtoupper(Auth::user()->department ?? 'GENERAL'),
         ]);
 
         // EMITIR ALERTA EN TIEMPO REAL A SOPORTE / ADMIN
-        broadcast(new TicketUpdated(
-            $ticket,
-            'CREADO',
-            'NUEVO TICKET REGISTRADO: #' . $ticket->id . ' POR ' . Auth::user()->name
-        ))->toOthers();
 
         return redirect()->route('tickets.index')->with('success', 'TICKET CREADO CORRECTAMENTE.');
     }
@@ -141,76 +139,97 @@ class TicketController extends Controller
         }
 
         // EMITIR ALERTA EN TIEMPO REAL
-        broadcast(new TicketUpdated(
-            $ticket,
-            'NUEVO_MENSAJE',
-            'NUEVO MENSAJE EN TICKET #' . $ticket->id . ' DE ' . $user->name
-        ))->toOthers();
-
         return redirect()->back()->with('success', 'MENSAJE ENVIADO CORRECTAMENTE.');
     }
 
     /**
-     * Resuelve y cierra oficialmente el ticket (Soporte / Administrador).
-     */
-    public function resolver(Request $request, $id)
-    {
-        $user = Auth::user();
-        $roleUpper = strtoupper($user->role);
+ * Resolver ticket por parte de Soporte / Administrador
+ */
+public function resolver(Request $request, $id)
+{
+    $user = Auth::user();
+    $roleUpper = strtoupper($user->role);
 
-        if (!in_array($roleUpper, ['ADMINISTRADOR', 'SOPORTE'])) {
-            abort(403, 'NO TIENE PERMISOS PARA RESOLVER ESTE TICKET.');
+    if (!in_array($roleUpper, ['ADMINISTRADOR', 'SOPORTE'])) {
+        abort(403, 'NO TIENE PERMISOS PARA RESOLVER ESTE TICKET.');
+    }
+
+    $request->validate([
+        'solucion' => 'required|string',
+    ]);
+
+    $ticket = Ticket::findOrFail($id);
+
+    $ticket->status = 'RESUELTO';
+    $ticket->solucion = strtoupper($request->solucion);
+    $ticket->resolved_at = now();
+    $ticket->save();
+
+    // Guardar la solución en el chat como un mensaje del sistema
+    $ticket->messages()->create([
+        'user_id' => $user->id,
+        'message' => 'TICKET MARCADO COMO RESUELTO POR SOPORTE. SOLUCIÓN: ' . strtoupper($request->solucion),
+    ]);
+
+    \App\Models\Mensaje::where('ticket_id', $ticket->id)
+        ->where('is_read', 0)
+        ->update(['is_read' => 1]);
+
+    return redirect()->back()->with('success', 'EL TICKET HA SIDO MARCADO COMO RESUELTO.');
+}
+
+
+public function cerrar(Request $request, $id)
+{
+        $ticket = Ticket::findOrFail($id);
+        $user = Auth::user();
+
+        // Solo el creador puede cerrar
+        if ($ticket->user_id !== $user->id) {
+            abort(403, 'NO TIENE PERMISOS PARA CERRAR ESTE TICKET.');
         }
 
-        $request->validate([
-            'solucion' => 'required|string',
-        ]);
+        // Si ya está resuelto, no hacer nada
+        if (strtoupper($ticket->status) === 'RESUELTO') {
+            return redirect()->back()->with('info', 'EL TICKET YA ESTÁ RESUELTO.');
+        }
 
-        $ticket = Ticket::findOrFail($id);
+        $solucionTexto = $request->filled('solucion') 
+            ? strtoupper(trim($request->solucion)) 
+            : 'EL USUARIO CONFIRMA LA SOLUCIÓN DEL PROBLEMA.';
 
+        // Asignar valores
         $ticket->status = 'RESUELTO';
-        $ticket->solution_notes = strtoupper($request->solucion);
-        $ticket->resolved_at = now();
+        $ticket->solucion = $solucionTexto;  // ← Usa el campo 'solucion'
+
+        // Si existe la columna resolved_at (opcional)
+        if (Schema::hasColumn('tickets', 'resolved_at')) {
+            $ticket->resolved_at = now();
+        }
+
         $ticket->save();
 
-        // Guardar la solución en el chat como un mensaje del sistema
+        // Registrar en el chat usando el modelo TicketMessage (NO Mensaje)
         $ticket->messages()->create([
             'user_id' => $user->id,
-            'message' => 'TICKET MARCADO COMO RESUELTO. SOLUCIÓN: ' . strtoupper($request->solucion),
+            'message' => 'TICKET FINALIZADO POR EL USUARIO. NOTA: ' . $solucionTexto,
+            'is_read' => 0,
         ]);
 
-       \App\Models\Mensaje::where('ticket_id', $ticketId)
-        ->where('is_read', 0)
-        ->update([
-            'is_read' => 1
-        ]);
-
-        return redirect()->back()->with('success', 'EL TICKET HA SIDO MARCADO COMO RESUELTO.');
-    }
-
-    /**
-     * Cierre de ticket por parte del empleado creador.
-     */
-    public function cerrar($id)
-    {
-        $ticket = Ticket::findOrFail($id);
-        $user = Auth::user();
-
-        if ($ticket->user_id !== $user->id && !in_array(strtoupper($user->role), ['ADMINISTRADOR', 'SOPORTE'])) {
-            abort(403, 'NO TIENE PERMISOS PARA CANCELAR O CERRAR ESTE TICKET.');
+        // Marcar mensajes como leídos (usando TicketMessage)
+        if (Schema::hasColumn('ticket_messages', 'is_read')) {  // ← tabla correcta
+            TicketMessage::where('ticket_id', $ticket->id)
+                ->where('is_read', 0)
+                ->update(['is_read' => 1]);
         }
 
-        $ticket->status = 'RESUELTO';
-        $ticket->save();
+        // Si la petición es AJAX (fetch), devolver JSON
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Ticket finalizado correctamente.']);
+        }
 
-        \App\Models\Mensaje::where('ticket_id', $ticketId)
-        ->where('is_read', 0)
-        ->update([
-            'is_read' => 1
-        ]);
-
-        return redirect()->back()->with('success', 'EL TICKET HA SIDO FINALIZADO.');
-    }
+        return redirect()->back()->with('success', 'EL TICKET HA SIDO FINALIZADO CORRECTAMENTE.');
+}
 
     public function create()
     {

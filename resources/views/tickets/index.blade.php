@@ -1,10 +1,9 @@
 @extends('layouts.app')
 
 @section('title', 'SISTEMA DE TICKETS')
-<!-- @section('header-title', 'GESTIÓN DE TICKETS') -->
 
 @section('content')
-<div class="container-fluid px-4 py-3" x-data="ticketsUsuarioApp()" x-init="init()">
+<div class="container-fluid px-4 py-3" x-data="ticketsApp()" x-init="init()">
     <!-- ENCABEZADO -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -15,7 +14,7 @@
         </div>
     </div>
 
- <!-- NOTIFICACIONES Y ALERTAS -->
+    <!-- NOTIFICACIONES -->
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show text-uppercase fw-bold shadow-sm" role="alert">
             <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
@@ -30,12 +29,16 @@
         </div>
     @endif
 
+    @if(session('info'))
+        <div class="alert alert-info alert-dismissible fade show text-uppercase fw-bold shadow-sm" role="alert">
+            <i class="fa-solid fa-circle-info me-2"></i> {{ session('info') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
-    <!-- ENCABEZADO Y FILTROS -->
+    <!-- FILTROS -->
     <div class="card border-0 shadow-sm p-3 rounded-3">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            
-            <!-- FORMULARIO DE BÚSQUEDA -->
             <form action="{{ route('tickets.index') }}" method="GET" class="d-flex align-items-center gap-2 flex-grow-1 m-0" style="min-width: 280px;">
                 <div class="input-group input-group-sm flex-grow-1">
                     <span class="input-group-text bg-light text-muted border-end-0">
@@ -55,25 +58,15 @@
                 @endif
             </form>
 
-            <!-- BOTÓN NUEVO TICKET -->
             <div class="flex-shrink-0">
                 <a href="{{ route('tickets.create') }}" class="btn btn-sm text-white fw-bold text-uppercase px-3 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="background-color: #1C6046;">
                     <i class="fa-solid fa-plus"></i> NUEVO TICKET
                 </a>
             </div>
-
         </div>
     </div>
 
-    {{-- ALERTAS DE SESIÓN --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 border-start border-4 border-success shadow-sm rounded-3 text-uppercase fw-bold p-3" role="alert" style="font-size: 0.75rem;">
-            <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    {{-- CONTENEDOR PRINCIPAL DE TICKETS --}}
+    <!-- LISTADO DE TICKETS -->
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         @if($tickets->isEmpty())
             <div class="card-body p-5 text-center">
@@ -139,18 +132,15 @@
                                 <td class="py-3 px-4 text-end">
                                     <div class="d-flex justify-content-end align-items-center gap-2">
                                         @if(!$estaFinalizado)
-                                            <form action="{{ route('tickets.update-status', $ticket->id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿ESTÁS SEGURO DE QUE DESEAS FINALIZAR ESTE TICKET?');">
-                                                @csrf
-                                                @method('PATCH')
-                                                <input type="hidden" name="status" value="RESUELTO">
-                                                <button type="submit" 
-                                                        class="btn btn-sm btn-outline-success fw-bold text-uppercase d-inline-flex align-items-center gap-1 shadow-none"
-                                                        style="font-size: 0.68rem; padding: 0.3rem 0.6rem;"
-                                                        title="{{ $tieneTecnico ? 'MARCAR TICKET COMO FINALIZADO' : 'DEBES ASIGNAR UN TÉCNICO ANTES DE FINALIZAR' }}"
-                                                        {{ !$tieneTecnico ? 'disabled' : '' }}>
-                                                    <i class="fa-solid fa-check-circle"></i> FINALIZAR
-                                                </button>
-                                            </form>
+                                            <!-- Botón FINALIZAR (empleado) -->
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-success fw-bold text-uppercase d-inline-flex align-items-center gap-1 shadow-none"
+                                                    style="font-size: 0.68rem; padding: 0.3rem 0.6rem;"
+                                                    @click.prevent="abrirModalFinalizar('{{ $ticket->id }}')"
+                                                    {{ !$tieneTecnico ? 'disabled' : '' }}
+                                                    title="{{ $tieneTecnico ? 'FINALIZAR TICKET' : 'DEBES ASIGNAR UN TÉCNICO ANTES DE FINALIZAR' }}">
+                                                <i class="fa-solid fa-check-circle"></i> FINALIZAR
+                                            </button>
                                         @endif
 
                                         @if($estaFinalizado)
@@ -225,19 +215,21 @@
 
                         <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
                             @if(!$estaFinalizado)
-                                <form action="{{ route('tickets.update-status', $ticket->id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿ESTÁS SEGURO DE QUE DESEAS FINALIZAR ESTE TICKET?');">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="status" value="RESUELTO">
-                                    <button type="submit" 
-                                            class="btn btn-sm btn-outline-success fw-bold text-uppercase d-inline-flex align-items-center gap-1 shadow-none"
-                                            style="font-size: 0.7rem;"
-                                            {{ !$tieneTecnico ? 'disabled' : '' }}>
-                                        <i class="fa-solid fa-check-circle"></i> FINALIZAR
-                                    </button>
-                                </form>
+                                <!-- Botón FINALIZAR (empleado) -->
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-success fw-bold text-uppercase d-inline-flex align-items-center gap-1 shadow-none"
+                                        style="font-size: 0.7rem;"
+                                        @click.prevent="abrirModalFinalizar('{{ $ticket->id }}')"
+                                        {{ !$tieneTecnico ? 'disabled' : '' }}>
+                                    <i class="fa-solid fa-check-circle"></i> FINALIZAR
+                                </button>
+                            @else
+                                <button disabled class="btn btn-sm btn-light text-muted fw-bold text-uppercase shadow-none border" style="font-size: 0.7rem;">
+                                    <i class="fa-solid fa-lock"></i> FINALIZADO
+                                </button>
                             @endif
 
+                            {{-- Chat (si no está finalizado y tiene técnico) --}}
                             @if($estaFinalizado)
                                 <button disabled class="btn btn-sm btn-light text-muted fw-bold text-uppercase shadow-none border" style="font-size: 0.7rem;">
                                     <i class="fa-solid fa-lock"></i> CHAT FINALIZADO
@@ -266,250 +258,345 @@
                 @endforeach
             </div>
 
-            <!-- PAGINACIÓN DENTRO DEL CONTENEDOR DE TABLA -->
-           <div class="p-3 border-top">
+            <!-- PAGINACIÓN -->
+            <div class="p-3 border-top">
                 {{ $tickets->links() }}
             </div>
-
         @endif
     </div>
-<!-- BANNER DE MENSAJES NO LEÍDOS (PERSISTENTE POR 2 MINUTOS) -->
-<template x-if="totalUnread > 0 && showUnreadBanner">
-    <div class="position-fixed bottom-0 start-0 m-3 p-3 bg-danger text-white rounded-3 shadow-lg border border-light d-flex align-items-center justify-content-between gap-3 text-uppercase fw-bold" style="z-index: 1040; max-width: 380px;">
-        <div class="d-flex align-items-center gap-3">
-            <i class="fa-solid fa-envelope-open-text fa-2x animate__animated animate__shakeX animate__infinite"></i>
-            <div>
-                <div class="small opacity-75">MENSAJES PENDIENTES</div>
-                <div style="font-size: 0.85rem;">TIENE <span x-text="totalUnread"></span> MENSAJE(S) SIN LEER</div>
-            </div>
-        </div>
-        <button type="button" @click="cerrarBanner()" class="btn-close btn-close-white shadow-none me-1" aria-label="Cerrar"></button>
-    </div>
-</template>
 
-<!-- WIDGET DE CHAT FLOTANTE -->
-<template x-if="openChatModal && selectedTicket">
-    <div class="position-fixed bottom-0 end-0 m-3 shadow-lg rounded-3 border-0 bg-white overflow-hidden d-flex flex-column" 
-         style="z-index: 1050; width: 360px; height: 480px; max-width: 95vw;">
-        
-        <!-- ENCABEZADO DEL CHAT -->
-        <div class="p-3 text-white d-flex justify-content-between align-items-center shadow-sm" style="background-color: #064e3b;">
-            <div class="d-flex align-items-center gap-2 overflow-hidden">
-                <i class="fa-solid fa-comments text-warning"></i>
-                <div class="text-truncate">
-                    <h6 class="fw-bold text-uppercase mb-0 text-truncate" style="font-size: 0.82rem;">
-                        FOLIO #<span x-text="selectedTicket.id"></span> - <span x-text="selectedTicket.usuario || 'SOPORTE'"></span>
+    <!-- MODAL DE FINALIZACIÓN (Alpine) -->
+    <template x-if="showModalFinalizar">
+        <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
+             style="z-index: 1060; background: rgba(0,0,0,0.5);">
+            <div class="bg-white rounded-3 shadow-lg p-4" style="width: 90%; max-width: 450px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-uppercase mb-0">
+                        <i class="fa-solid fa-check-circle text-success me-2"></i>
+                        FINALIZAR TICKET #<span x-text="ticketIdFinalizar"></span>
                     </h6>
+                    <button type="button" class="btn-close shadow-none" @click="cerrarModalFinalizar()"></button>
+                </div>
+
+                <div class="mb-3">
+                    <label for="motivoFinalizarInput" class="form-label fw-bold text-muted text-uppercase" style="font-size: 0.75rem;">
+                        ESCRIBA UNA BREVE DESCRIPCIÓN DEL MOTIVO DE CIERRE <span class="text-danger">*</span>
+                    </label>
+                    <textarea id="motivoFinalizarInput" 
+                              class="form-control text-uppercase shadow-none" 
+                              rows="4"
+                              x-model="motivoFinalizar"
+                              placeholder="EJEMPLO: EL PROBLEMA QUEDÓ RESUELTO SATISFACTORIAMENTE..."
+                              :disabled="enviandoFinalizar"></textarea>
+                    <small class="text-muted text-uppercase" style="font-size: 0.6rem;">
+                        MÍNIMO 4 PALABRAS
+                    </small>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-secondary fw-bold text-uppercase" 
+                            @click="cerrarModalFinalizar()" :disabled="enviandoFinalizar">
+                        CANCELAR
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success fw-bold text-uppercase" 
+                            @click.prevent="enviarCierre()" :disabled="enviandoFinalizar">
+                        <span x-show="!enviandoFinalizar"><i class="fa-solid fa-check me-1"></i> FINALIZAR</span>
+                        <span x-show="enviandoFinalizar">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span> ENVIANDO...
+                        </span>
+                    </button>
                 </div>
             </div>
-            <button type="button" @click="cerrarChat()" class="btn-close btn-close-white shadow-none ms-2" style="font-size: 0.75rem;"></button>
         </div>
+    </template>
 
+    <!-- BANNER DE MENSAJES NO LEÍDOS -->
+    <template x-if="totalUnread > 0 && showUnreadBanner">
+        <div class="position-fixed bottom-0 start-0 m-3 p-3 bg-danger text-white rounded-3 shadow-lg border border-light d-flex align-items-center justify-content-between gap-3 text-uppercase fw-bold" style="z-index: 1040; max-width: 380px;">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fa-solid fa-envelope-open-text fa-2x animate__animated animate__shakeX animate__infinite"></i>
+                <div>
+                    <div class="small opacity-75">MENSAJES PENDIENTES</div>
+                    <div style="font-size: 0.85rem;">TIENE <span x-text="totalUnread"></span> MENSAJE(S) SIN LEER</div>
+                </div>
+            </div>
+            <button type="button" @click="cerrarBanner()" class="btn-close btn-close-white shadow-none me-1" aria-label="Cerrar"></button>
+        </div>
+    </template>
 
-        <!-- CUERPO DEL CHAT -->
-        <div id="modal-chat-body" class="p-3 bg-light flex-grow-1 overflow-auto d-flex flex-column gap-2">
-            <!-- CARGANDO -->
-            <template x-if="cargandoMensajes">
-                <div class="text-center my-auto py-4">
-                    <div class="spinner-border text-success spinner-border-sm" role="status">
-                        <span class="visually-hidden">CARGANDO...</span>
+    <!-- WIDGET DE CHAT FLOTANTE -->
+    <template x-if="openChatModal && selectedTicket">
+        <div class="position-fixed bottom-0 end-0 m-3 shadow-lg rounded-3 border-0 bg-white overflow-hidden d-flex flex-column" 
+             style="z-index: 1050; width: 360px; height: 480px; max-width: 95vw;">
+            
+            <!-- ENCABEZADO DEL CHAT -->
+            <div class="p-3 text-white d-flex justify-content-between align-items-center shadow-sm" style="background-color: #064e3b;">
+                <div class="d-flex align-items-center gap-2 overflow-hidden">
+                    <i class="fa-solid fa-comments text-warning"></i>
+                    <div class="text-truncate">
+                        <h6 class="fw-bold text-uppercase mb-0 text-truncate" style="font-size: 0.82rem;">
+                            FOLIO #<span x-text="selectedTicket.id"></span> - <span x-text="selectedTicket.usuario || 'SOPORTE'"></span>
+                        </h6>
                     </div>
-                    <p class="text-uppercase fw-bold text-muted small mt-2 mb-0" style="font-size: 0.7rem;">OBTENIENDO CHAT...</p>
                 </div>
-            </template>
-
-            <!-- LISTADO DE MENSAJES -->
-            <template x-if="!cargandoMensajes && selectedTicket.mensajes && selectedTicket.mensajes.length > 0">
-                <div class="d-flex flex-column gap-2">
-                    <template x-for="msg in selectedTicket.mensajes" :key="msg.id || Math.random()">
-                        <div :class="String(msg.user_id) === '{{ auth()->id() }}' ? 'align-self-end bg-success text-white' : 'align-self-start bg-white text-dark border'"
-                            class="p-2 rounded-3 shadow-sm text-uppercase" style="max-width: 85%; font-size: 0.75rem;">
-                            
-                            <!-- USUARIO EMISOR -->
-                            <div class="fw-bold mb-1 opacity-75" style="font-size: 0.62rem;" x-text="msg.user ? msg.user.name : 'USUARIO'"></div>
-                            
-                            <!-- CONTENIDO DEL MENSAJE -->
-                            <p class="mb-1 fw-semibold text-break" x-text="msg.message || msg.contenido"></p>
-                            
-                            <!-- FECHA Y HORA -->
-                            <small class="d-block text-end opacity-75" style="font-size: 0.58rem;" 
-                                x-text="msg.created_at ? new Date(msg.created_at).toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'AHORA'">
-                            </small>
-                        </div>
-                    </template>
-                </div>
-            </template>
-
-            <!-- SIN MENSAJES -->
-            <template x-if="!cargandoMensajes && (!selectedTicket.mensajes || selectedTicket.mensajes.length === 0)">
-                <div class="text-center my-auto text-muted fw-bold text-uppercase p-3" style="font-size: 0.72rem;">
-                    <i class="fa-regular fa-comment-dots fa-2x mb-2 text-secondary opacity-50"></i>
-                    <div>NO HAY MENSAJES EN ESTE TICKET AÚN.</div>
-                </div>
-            </template>
-        </div>
-
-        <!-- FORMULARIO DE ENVÍO -->
-        <form @submit.prevent="enviarMensaje($el)" class="p-2 bg-white border-top">
-            <div class="input-group">
-                <input type="text" name="message" required placeholder="ESCRIBA SU MENSAJE..." class="form-control form-control-sm text-uppercase fw-semibold shadow-none border-end-0" style="font-size: 0.75rem;" autocomplete="off">
-                <button type="submit" class="btn btn-sm text-white fw-bold text-uppercase px-3 shadow-none" style="background-color: #047857;">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
+                <button type="button" @click="cerrarChat()" class="btn-close btn-close-white shadow-none ms-2" style="font-size: 0.75rem;"></button>
             </div>
-        </form>
-    </div>
-</template>
+
+            <!-- CUERPO DEL CHAT -->
+            <div id="modal-chat-body" class="p-3 bg-light flex-grow-1 overflow-auto d-flex flex-column gap-2">
+                <template x-if="cargandoMensajes">
+                    <div class="text-center my-auto py-4">
+                        <div class="spinner-border text-success spinner-border-sm" role="status">
+                            <span class="visually-hidden">CARGANDO...</span>
+                        </div>
+                        <p class="text-uppercase fw-bold text-muted small mt-2 mb-0" style="font-size: 0.7rem;">OBTENIENDO CHAT...</p>
+                    </div>
+                </template>
+
+                <template x-if="!cargandoMensajes && selectedTicket.mensajes && selectedTicket.mensajes.length > 0">
+                    <div class="d-flex flex-column gap-2">
+                        <template x-for="msg in selectedTicket.mensajes" :key="msg.id || Math.random()">
+                            <div :class="String(msg.user_id) === '{{ auth()->id() }}' ? 'align-self-end bg-success text-white' : 'align-self-start bg-white text-dark border'"
+                                 class="p-2 rounded-3 shadow-sm text-uppercase" style="max-width: 85%; font-size: 0.75rem;">
+                                
+                                <div class="fw-bold mb-1 opacity-75" style="font-size: 0.62rem;" x-text="msg.user ? msg.user.name : 'USUARIO'"></div>
+                                
+                                <p class="mb-1 fw-semibold text-break" x-text="msg.message || msg.contenido"></p>
+                                
+                                <small class="d-block text-end opacity-75" style="font-size: 0.58rem;" 
+                                       x-text="msg.created_at ? new Date(msg.created_at).toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'AHORA'">
+                                </small>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <template x-if="!cargandoMensajes && (!selectedTicket.mensajes || selectedTicket.mensajes.length === 0)">
+                    <div class="text-center my-auto text-muted fw-bold text-uppercase p-3" style="font-size: 0.72rem;">
+                        <i class="fa-regular fa-comment-dots fa-2x mb-2 text-secondary opacity-50"></i>
+                        <div>NO HAY MENSAJES EN ESTE TICKET AÚN.</div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- FORMULARIO DE ENVÍO -->
+            <form @submit.prevent="enviarMensaje($el)" class="p-2 bg-white border-top">
+                <div class="input-group">
+                    <input type="text" name="message" required placeholder="ESCRIBA SU MENSAJE..." class="form-control form-control-sm text-uppercase fw-semibold shadow-none border-end-0" style="font-size: 0.75rem;" autocomplete="off">
+                    <button type="submit" class="btn btn-sm text-white fw-bold text-uppercase px-3 shadow-none" style="background-color: #047857;">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </template>
+</div>
 
 <script>
-    function ticketsUsuarioApp() {
-    return {
-        openChatModal: false,
-        selectedTicket: null,
-        cargandoMensajes: false,
-        unreadCounts: {},
-        inactivityTimer: null,
-        pollTimer: null,
-        showUnreadBanner: true,
-        bannerTimer: null,
+    function ticketsApp() {
+        return {
+            // Chat
+            openChatModal: false,
+            selectedTicket: null,
+            cargandoMensajes: false,
+            unreadCounts: {},
+            inactivityTimer: null,
+            pollTimer: null,
+            showUnreadBanner: true,
+            bannerTimer: null,
 
-        init() {
-            // CORREGIDO: Se evalúa 'is_read' en lugar de 'leido'
-            @foreach($tickets as $t)
-                this.unreadCounts['{{ $t->id }}'] = {{ $t->messages->where('is_read', 0)->where('user_id', '!=', auth()->id())->count() }};
-            @endforeach
+            // Modal de finalización
+            showModalFinalizar: false,
+            ticketIdFinalizar: null,
+            motivoFinalizar: '',
+            enviandoFinalizar: false,
 
-            this.iniciarTimerBanner();
-
-            this.resetInactivityTimer();
-            ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt => {
-                window.addEventListener(evt, () => this.resetInactivityTimer());
-            });
-
-            this.pollTimer = setInterval(() => {
-                if (this.openChatModal && this.selectedTicket) {
-                    this.cargarMensajes(this.selectedTicket.id, false);
-                }
-            }, 10000);
-        },
-
-        get totalUnread() {
-            return Object.values(this.unreadCounts).reduce((a, b) => a + b, 0);
-        },
-
-        iniciarTimerBanner() {
-            clearTimeout(this.bannerTimer);
-            this.bannerTimer = setTimeout(() => {
-                this.showUnreadBanner = false;
-            }, 120000);
-        },
-
-        cerrarBanner() {
-            this.showUnreadBanner = false;
-            clearTimeout(this.bannerTimer);
-        },
-        
-        resetInactivityTimer() {
-            clearTimeout(this.inactivityTimer);
-            this.inactivityTimer = setTimeout(() => {
-                if (!this.openChatModal) {
-                    window.location.reload();
-                }
-            }, 60000);
-        },
-
-        abrirChat(ticketData) {
-            this.selectedTicket = {
-                id: ticketData.id,
-                usuario: ticketData.usuario,
-                mensajes: []
-            };
-            
-            // PONE EN 0 EL CONTADOR DE MENSAJES DE ESTE TICKET AL ABRIR EL CHAT
-            this.unreadCounts[ticketData.id] = 0;
-            this.openChatModal = true;
-            this.cargarMensajes(ticketData.id, true);
-        },
-
-        cerrarChat() {
-            this.openChatModal = false;
-            this.selectedTicket = null;
-        },
-
-        async cargarMensajes(ticketId, mostrarSpinner = true) {
-            if (mostrarSpinner) this.cargandoMensajes = true;
-
-            try {
-                const response = await fetch(`/tickets/${ticketId}/mensajes`);
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Manejar tanto array directo como objeto { mensajes: [...] } por compatibilidad
-                    const mensajesObtenidos = Array.isArray(data) ? data : (data.mensajes || []);
-
-                    if (this.selectedTicket && this.selectedTicket.id === ticketId) {
-                        this.selectedTicket.mensajes = mensajesObtenidos;
-                        this.scrollToBottom();
+            init() {
+                // Cargar contadores de mensajes no leídos desde el backend
+                @php
+                    $unreadData = [];
+                    foreach($tickets as $ticket) {
+                        $userId = auth()->id();
+                        $count = $ticket->messages->where('is_read', 0)->where('user_id', '!=', $userId)->count();
+                        $unreadData[(string)$ticket->id] = $count;
                     }
-                    
-                    // CONFIRMAR LIMPIEZA DE NO LEÍDOS DE ESTE TICKET
-                    this.unreadCounts[ticketId] = 0;
-                }
-            } catch (error) {
-                console.error("ERROR AL CARGAR LOS MENSAJES:", error);
-            } finally {
-                if (mostrarSpinner) this.cargandoMensajes = false;
-            }
-        },
+                @endphp
+                this.unreadCounts = @json($unreadData);
 
-        async enviarMensaje(form) {
-            const formData = new FormData(form);
-            const input = form.querySelector('input[name="message"]');
-            const texto = input.value.trim().toUpperCase();
+                this.iniciarTimerBanner();
+                this.resetInactivityTimer();
 
-            if (!texto || !this.selectedTicket) return;
-
-            const tempMsg = {
-                id: 'temp_' + Date.now(),
-                user_id: '{{ auth()->id() }}',
-                message: texto,
-                user: { name: '{{ auth()->user()->name }}' },
-                created_at: new Date().toISOString()
-            };
-
-            this.selectedTicket.mensajes.push(tempMsg);
-            input.value = '';
-            this.scrollToBottom();
-
-            try {
-                const response = await fetch(`/tickets/${this.selectedTicket.id}/mensajes`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: formData
+                ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt => {
+                    window.addEventListener(evt, () => this.resetInactivityTimer());
                 });
 
-                if (response.ok) {
-                    this.cargarMensajes(this.selectedTicket.id, false);
-                } else {
-                    alert('NO SE PUDO ENVIAR EL MENSAJE.');
-                }
-            } catch (error) {
-                console.error("ERROR AL ENVIAR MENSAJE:", error);
-            }
-        },
+                this.pollTimer = setInterval(() => {
+                    if (this.openChatModal && this.selectedTicket) {
+                        this.cargarMensajes(this.selectedTicket.id, false);
+                    }
+                }, 10000);
+            },
 
-        scrollToBottom() {
-            this.$nextTick(() => {
-                const chatBody = document.getElementById('modal-chat-body');
-                if (chatBody) {
-                    chatBody.scrollTop = chatBody.scrollHeight;
+            get totalUnread() {
+                return Object.values(this.unreadCounts).reduce((a, b) => Number(a) + Number(b), 0);
+            },
+
+            iniciarTimerBanner() {
+                clearTimeout(this.bannerTimer);
+                this.bannerTimer = setTimeout(() => {
+                    this.showUnreadBanner = false;
+                }, 120000);
+            },
+
+            cerrarBanner() {
+                this.showUnreadBanner = false;
+                clearTimeout(this.bannerTimer);
+            },
+
+            resetInactivityTimer() {
+                clearTimeout(this.inactivityTimer);
+                this.inactivityTimer = setTimeout(() => {
+                    if (!this.openChatModal) {
+                        window.location.reload();
+                    }
+                }, 60000);
+            },
+
+            // ===== CHAT =====
+            abrirChat(ticketData) {
+                const id = String(ticketData.id);
+                this.selectedTicket = {
+                    id: id,
+                    usuario: ticketData.usuario,
+                    mensajes: []
+                };
+                this.unreadCounts[id] = 0;
+                this.openChatModal = true;
+                this.cargarMensajes(id, true);
+            },
+
+            cerrarChat() {
+                this.openChatModal = false;
+                this.selectedTicket = null;
+            },
+
+            async cargarMensajes(ticketId, mostrarSpinner = true) {
+                const id = String(ticketId);
+                if (mostrarSpinner) this.cargandoMensajes = true;
+
+                try {
+                    const response = await fetch(`/tickets/${id}/mensajes`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const mensajesObtenidos = Array.isArray(data) ? data : (data.mensajes || []);
+                        if (this.selectedTicket && String(this.selectedTicket.id) === id) {
+                            this.selectedTicket.mensajes = mensajesObtenidos;
+                            this.scrollToBottom();
+                        }
+                        this.unreadCounts[id] = 0;
+                    }
+                } catch (error) {
+                    console.error('ERROR AL CARGAR LOS MENSAJES:', error);
+                } finally {
+                    if (mostrarSpinner) this.cargandoMensajes = false;
                 }
-            });
-        }
-    };
-}
+            },
+
+            async enviarMensaje(form) {
+                const formData = new FormData(form);
+                const input = form.querySelector('input[name="message"]');
+                const texto = input.value.trim().toUpperCase();
+                if (!texto || !this.selectedTicket) return;
+
+                const tempMsg = {
+                    id: 'temp_' + Date.now(),
+                    user_id: '{{ auth()->id() }}',
+                    message: texto,
+                    user: { name: '{{ auth()->user()->name }}' },
+                    created_at: new Date().toISOString()
+                };
+
+                this.selectedTicket.mensajes.push(tempMsg);
+                input.value = '';
+                this.scrollToBottom();
+
+                try {
+                    const response = await fetch(`/tickets/${this.selectedTicket.id}/mensajes`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+                    if (response.ok) {
+                        this.cargarMensajes(this.selectedTicket.id, false);
+                    } else {
+                        alert('NO SE PUDO ENVIAR EL MENSAJE.');
+                    }
+                } catch (error) {
+                    console.error('ERROR AL ENVIAR MENSAJE:', error);
+                }
+            },
+
+            scrollToBottom() {
+                this.$nextTick(() => {
+                    const chatBody = document.getElementById('modal-chat-body');
+                    if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+                });
+            },
+
+            // ===== MODAL DE FINALIZACIÓN =====
+            abrirModalFinalizar(ticketId) {
+                this.ticketIdFinalizar = ticketId;
+                this.motivoFinalizar = '';
+                this.showModalFinalizar = true;
+            },
+
+            cerrarModalFinalizar() {
+                this.showModalFinalizar = false;
+                this.ticketIdFinalizar = null;
+                this.motivoFinalizar = '';
+            },
+
+            async enviarCierre() {
+                const palabras = this.motivoFinalizar.trim().split(/\s+/).filter(p => p.length > 0);
+                if (palabras.length < 4) {
+                    alert('DEBE ESCRIBIR AL MENOS 4 PALABRAS PARA DESCRIBIR EL MOTIVO.');
+                    return;
+                }
+                if (!this.ticketIdFinalizar) return;
+
+                this.enviandoFinalizar = true;
+
+                try {
+                    const response = await fetch(`/tickets/${this.ticketIdFinalizar}/cerrar`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            solucion: this.motivoFinalizar.toUpperCase().trim(),
+                        }),
+                    });
+
+                    if (response.ok) {
+                        this.cerrarModalFinalizar();
+                        window.location.reload();
+                    } else {
+                        const data = await response.json();
+                        alert(data.error || 'OCURRIÓ UN ERROR AL FINALIZAR EL TICKET.');
+                    }
+                } catch (error) {
+                    console.error('Error al finalizar:', error);
+                    alert('ERROR DE CONEXIÓN. INTENTE NUEVAMENTE.');
+                } finally {
+                    this.enviandoFinalizar = false;
+                }
+            }
+        };
+    }
 </script>
 @endsection

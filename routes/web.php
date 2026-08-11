@@ -71,9 +71,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
     
     // Rutas compartidas de acción/respuesta sobre tickets
-    Route::patch('/tickets/{ticket}/cerrar', [TicketController::class, 'cerrar'])->name('tickets.cerrar');
-    Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.update-status');
-    
+    Route::post('/tickets/{ticket}/cerrar', [TicketController::class, 'cerrar'])->name('tickets.cerrar');
+    Route::post('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.update-status');
+
     // Historial y almacenamiento de mensajes
     Route::get('/tickets/{ticket}/mensajes', [TicketMessageController::class, 'index'])->name('tickets.mensajes.index');
     Route::post('/tickets/{ticket}/mensajes', [TicketMessageController::class, 'store'])->name('tickets.mensajes.store');
@@ -98,7 +98,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:SOPORTE,ADMINISTRADOR')->prefix('soporte')->name('soporte.')->group(function () {
         Route::get('/tickets', [SoporteTicketController::class, 'index'])->name('tickets.index');
         Route::patch('/tickets/{ticket}/atender', [SoporteTicketController::class, 'atender'])->name('tickets.atender');
-        Route::patch('/tickets/{ticket}/resolver', [SoporteTicketController::class, 'resolver'])->name('tickets.resolver');
+        Route::post('/tickets/{id}/resolver', [TicketController::class, 'resolver'])->name('tickets.resolver');
         Route::patch('/tickets/{ticket}/asignar', [SoporteTicketController::class, 'asignar'])->name('tickets.asignar');
         Route::get('/tickets/{id}/chat', [TicketController::class, 'chat'])->name('tickets.chat');
         Route::post('/tickets/{id}/chat/mensaje', [TicketController::class, 'enviarMensaje'])->name('tickets.chat.mensaje');

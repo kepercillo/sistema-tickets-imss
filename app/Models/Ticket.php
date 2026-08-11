@@ -107,4 +107,6 @@ class Ticket extends Model
     {
         return $this->hasMany(TicketMessage::class, 'ticket_id');
     }
+
+
 }
