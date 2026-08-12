@@ -88,8 +88,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/soporte', [AdminSoporteController::class, 'store'])->name('soporte.store');
         Route::put('/soporte/{user}', [AdminSoporteController::class, 'update'])->name('soporte.update');
         Route::delete('/soporte/{user}', [AdminSoporteController::class, 'destroy'])->name('soporte.destroy');
-    });
-
+        // Route::get('/soporte/empleados-disponibles', [AdminSoporteController::class, 'empleadosDisponibles'])->name('soporte.empleados');
+        Route::get('/soporte/empleados-disponibles', [AdminSoporteController::class, 'empleadosDisponibles'])->name('soporte.empleados');
+        Route::post('/soporte/asignar/{user}', [AdminSoporteController::class, 'asignarSoporte'])->name('soporte.asignar');
+        Route::post('/soporte/revertir/{user}', [AdminSoporteController::class, 'revertirEmpleado'])->name('soporte.revertir');
+        Route::post('/soporte/promover-admin/{user}', [AdminSoporteController::class, 'promoverAdmin'])->name('soporte.promoverAdmin');
+        Route::post('/soporte/revertir-admin/{user}', [AdminSoporteController::class, 'revertirAdmin'])->name('soporte.revertirAdmin');
+        Route::get('/soporte/empleados', [AdminSoporteController::class, 'listarEmpleados'])->name('soporte.empleados.listar');
+        Route::post('/soporte/empleados/desactivar/{user}', [AdminSoporteController::class, 'desactivarEmpleado'])->name('soporte.empleados.desactivar');
+        Route::post('/soporte/empleados/reactivar/{user}', [AdminSoporteController::class, 'reactivarEmpleado'])->name('soporte.empleados.reactivar');
+     });
     /*
     |--------------------------------------------------------------------------
     | RUTAS EXCLUSIVAS PARA SOPORTE Y ADMINISTRADOR
