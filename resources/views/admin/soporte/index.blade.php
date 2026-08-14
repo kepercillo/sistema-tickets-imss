@@ -86,22 +86,22 @@
                             <tr>
                                 <td class="py-3 px-4">
                                     <div class="d-flex align-items-center gap-3">
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-uppercase" 
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" 
                                              style="width: 36px; height: 36px; background-color: {{ $esAdmin ? '#fecaca' : '#d1fae5' }}; color: {{ $esAdmin ? '#991b1b' : '#065f46' }}; font-size: 0.75rem;">
                                             {{ substr($tecnico->name, 0, 2) }}
                                         </div>
                                         <div>
-                                            <span class="d-block fw-bold text-dark text-uppercase">{{ $tecnico->name }}</span>
-                                            <span class="text-muted d-block text-uppercase" style="font-size: 0.65rem;">
+                                            <span class="d-block fw-bold text-dark">{{ $tecnico->name }}</span>
+                                            <span class="text-muted d-block" style="font-size: 0.65rem;">
                                                 {{ $rolUpper }}
                                             </span>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="py-3 px-4 font-monospace text-dark text-uppercase">
+                                <td class="py-3 px-4 font-monospace text-dark">
                                     {{ $tecnico->username }}
                                 </td>
-                                <td class="py-3 px-4 text-uppercase">
+                                <td class="py-3 px-4">
                                     {{ $tecnico->email }}
                                 </td>
                                 <td class="py-3 px-4">
@@ -228,7 +228,7 @@
                         <span class="input-group-text bg-light text-muted">
                             <i class="fa-solid fa-search"></i>
                         </span>
-                        <input type="text" class="form-control form-control-sm text-uppercase fw-semibold shadow-none" 
+                        <input type="text" class="form-control form-control-sm fw-semibold shadow-none" 
                                placeholder="BUSCAR POR NOMBRE, USUARIO O CORREO..."
                                x-model="buscarEmpleado"
                                @input.debounce="cargarEmpleados()">
@@ -269,9 +269,9 @@
                             <tbody>
                                 <template x-for="emp in empleadosActivos" :key="emp.id">
                                     <tr>
-                                        <td class="fw-bold text-dark text-uppercase" x-text="emp.name"></td>
-                                        <td class="text-uppercase" x-text="emp.username"></td>
-                                        <td class="text-uppercase" x-text="emp.email"></td>
+                                        <td class="fw-bold text-dark" x-text="emp.name"></td>
+                                        <td  x-text="emp.username"></td>
+                                        <td  x-text="emp.email"></td>
                                         <td>
                                             <span class="badge" :class="{
                                                 'bg-danger': emp.role === 'ADMINISTRADOR',
@@ -324,9 +324,9 @@
                             <tbody>
                                 <template x-for="emp in empleadosInactivos" :key="emp.id">
                                     <tr>
-                                        <td class="fw-bold text-dark text-uppercase" x-text="emp.name"></td>
-                                        <td class="text-uppercase" x-text="emp.username"></td>
-                                        <td class="text-uppercase" x-text="emp.email"></td>
+                                        <td class="fw-bold text-dark" x-text="emp.name"></td>
+                                        <td x-text="emp.username"></td>
+                                        <td x-text="emp.email"></td>
                                         <td>
                                             <span class="badge" :class="{
                                                 'bg-danger': emp.role === 'ADMINISTRADOR',
@@ -335,7 +335,7 @@
                                             }" x-text="emp.role"></span>
                                         </td>
                                         <td class="text-end">
-                                            <button @click="reactivar(emp.id)" 
+                                            <button @click.prevent="reactivar(emp.id)" 
                                                     class="btn btn-sm btn-warning fw-bold text-uppercase d-inline-flex align-items-center gap-1 shadow-none"
                                                     style="font-size: 0.65rem; padding: 0.2rem 0.5rem;">
                                                 <i class="fa-solid fa-rotate-left"></i> REACTIVAR
@@ -436,11 +436,11 @@
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('soporteApp', () => ({
-            // Modales
+            // Propiedades de modales
             openEditModal: false,
             openGestionModal: false,
             editUser: { id: '', name: '', username: '', email: '' },
-            
+
             // Gestión de empleados
             tabActiva: 'activos',
             buscarEmpleado: '',
@@ -449,7 +449,6 @@
             cargando: false,
 
             init() {
-                // Cuando se abre el modal de gestión, cargar empleados
                 this.$watch('openGestionModal', (value) => {
                     if (value) {
                         this.tabActiva = 'activos';
@@ -486,10 +485,8 @@
                 }
             },
 
-            // Ascender a SOPORTE (desde la pestaña activos)
             async ascenderSoporte(userId) {
                 if (!confirm('¿ESTÁ SEGURO DE ASCENDER A ESTE EMPLEADO A SOPORTE TÉCNICO?')) return;
-
                 try {
                     const response = await fetch(`/admin/soporte/asignar/${userId}`, {
                         method: 'POST',
@@ -501,7 +498,6 @@
                     });
                     if (response.ok) {
                         this.cargarEmpleados();
-                        // Recargar la página principal para reflejar el cambio en la tabla
                         window.location.reload();
                     } else {
                         const data = await response.json();
@@ -513,10 +509,8 @@
                 }
             },
 
-            // Desactivar (soft delete)
             async desactivar(userId) {
                 if (!confirm('¿ESTÁ SEGURO DE DESACTIVAR ESTE EMPLEADO? PODRÁ REACTIVARLO MÁS TARDE.')) return;
-
                 try {
                     const response = await fetch(`/admin/soporte/empleados/desactivar/${userId}`, {
                         method: 'POST',
@@ -538,10 +532,8 @@
                 }
             },
 
-            // Reactivar
             async reactivar(userId) {
                 if (!confirm('¿ESTÁ SEGURO DE REACTIVAR ESTE EMPLEADO?')) return;
-
                 try {
                     const response = await fetch(`/admin/soporte/empleados/reactivar/${userId}`, {
                         method: 'POST',
@@ -565,7 +557,6 @@
 
             // ===== EDICIÓN =====
             prepararEdicion(tecnico) {
-                // Mantenemos los valores originales (sin mayúsculas forzadas)
                 this.editUser = { ...tecnico };
                 this.openEditModal = true;
             }

@@ -79,6 +79,14 @@
                     <span x-show="sidebarOpen" class="text-uppercase small text-nowrap">DIRECTORIO IMSS</span>
                 </a>
 
+                {{-- 5. PROBLEMAS FRECUENTES (Todos los roles) --}}
+                <a href="{{ route('problemas-frecuentes.index') }}" 
+                class="nav-link text-white p-3 rounded d-flex align-items-center gap-3 {{ request()->routeIs('problemas-frecuentes.*') ? 'active bg-success fw-bold' : '' }}"
+                style="background-color: {{ request()->routeIs('problemas-frecuentes.*') ? '#047857' : 'transparent' }};">
+                    <i class="fa-solid fa-book-open fs-5 text-center" style="width: 24px;"></i>
+                    <span x-show="sidebarOpen" class="text-uppercase small text-nowrap">PROBLEMAS FRECUENTES</span>
+                </a>
+
             </nav>
             
             <!-- Pie del Panel -->

@@ -30,6 +30,15 @@ class Ticket extends Model
         'resolved_at'
     ];
 
+    protected $casts = [
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+    'resolved_at' => 'datetime',
+    'attended_at' => 'datetime',
+    'deleted_at' => 'datetime', 
+    ];
+
+
     protected function title(): Attribute
     {
         return Attribute::make(

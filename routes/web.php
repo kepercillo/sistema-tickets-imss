@@ -13,6 +13,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SoporteTicketController;
 use App\Http\Controllers\AdminSoporteController;
 use App\Http\Controllers\TicketMessageController;
+use App\Http\Controllers\ProblemaFrecuenteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +61,8 @@ Route::middleware('auth')->group(function () {
     Route::get('perfil', [PerfilController::class, 'edit'])->name('profile.edit');
     Route::put('perfil', [PerfilController::class, 'update'])->name('profile.update');
     Route::get('/directorio', [DirectoryController::class, 'index'])->name('directory.index');
+    Route::get('/problemas-frecuentes', [ProblemaFrecuenteController::class, 'index'])->name('problemas-frecuentes.index');
+    Route::get('/problemas-frecuentes/{ticket}', [ProblemaFrecuenteController::class, 'show'])->name('problemas-frecuentes.show');
 
     /*
     |--------------------------------------------------------------------------
@@ -97,6 +100,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/soporte/empleados', [AdminSoporteController::class, 'listarEmpleados'])->name('soporte.empleados.listar');
         Route::post('/soporte/empleados/desactivar/{user}', [AdminSoporteController::class, 'desactivarEmpleado'])->name('soporte.empleados.desactivar');
         Route::post('/soporte/empleados/reactivar/{user}', [AdminSoporteController::class, 'reactivarEmpleado'])->name('soporte.empleados.reactivar');
+     
      });
     /*
     |--------------------------------------------------------------------------

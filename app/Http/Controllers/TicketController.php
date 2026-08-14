@@ -151,6 +151,9 @@ public function resolver(Request $request, $id)
     $roleUpper = strtoupper($user->role);
 
     if (!in_array($roleUpper, ['ADMINISTRADOR', 'SOPORTE'])) {
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['error' => 'NO TIENE PERMISOS.'], 403);
+        }
         abort(403, 'NO TIENE PERMISOS PARA RESOLVER ESTE TICKET.');
     }
 
@@ -169,11 +172,27 @@ public function resolver(Request $request, $id)
     $ticket->messages()->create([
         'user_id' => $user->id,
         'message' => 'TICKET MARCADO COMO RESUELTO POR SOPORTE. SOLUCIÓN: ' . strtoupper($request->solucion),
+        'is_read' => 0,
     ]);
 
-    \App\Models\Mensaje::where('ticket_id', $ticket->id)
-        ->where('is_read', 0)
-        ->update(['is_read' => 1]);
+    // Marcar mensajes como leídos (usando TicketMessage en lugar de Mensaje)
+    if (class_exists('App\Models\TicketMessage')) {
+        \App\Models\TicketMessage::where('ticket_id', $ticket->id)
+            ->where('is_read', 0)
+            ->update(['is_read' => 1]);
+    } else {
+        // Si usas el modelo Mensaje, asegúrate de importarlo
+        \App\Models\Mensaje::where('ticket_id', $ticket->id)
+            ->where('is_read', 0)
+            ->update(['is_read' => 1]);
+    }
+
+    // Si es AJAX, devolver JSON
+    if ($request->wantsJson() || $request->ajax()) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Ticket resuelto correctamente.']);
+    }
 
     return redirect()->back()->with('success', 'EL TICKET HA SIDO MARCADO COMO RESUELTO.');
 }

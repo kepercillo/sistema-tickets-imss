@@ -314,10 +314,10 @@
                               class="form-control text-uppercase shadow-none" 
                               rows="5"
                               x-model="solucionResolver"
-                              placeholder="EJEMPLO: SE REALIZÓ UN ANÁLISIS DEL LOG DE ERRORES, SE IDENTIFICÓ QUE EL PROBLEMA ERA DE CONFIGURACIÓN EN EL SERVIDOR, SE AJUSTARON LOS PARÁMETROS Y SE REINICIÓ EL SERVICIO. EL USUARIO CONFIRMÓ QUE EL SISTEMA FUNCIONA CORRECTAMENTE."
+                              placeholder="INGRESE UNA DESCRIPCIÓN DETALLADA SI ES UN PROBLEMA QUE REQUIERE RESOLUCIÓN DE VARIOS PASOS PARA INCLUIR EN EL HISTORIAL DE PROBLEMAS FRECUENTES."
                               :disabled="enviandoResolver"></textarea>
                     <small class="text-muted text-uppercase" style="font-size: 0.6rem;">
-                        MÍNIMO 10 PALABRAS
+                        MÍNIMO 5 PALABRAS
                     </small>
                 </div>
 
@@ -580,8 +580,8 @@
 
             async enviarResolver() {
                 const palabras = this.solucionResolver.trim().split(/\s+/).filter(p => p.length > 0);
-                if (palabras.length < 10) {
-                    alert('DEBE ESCRIBIR AL MENOS 10 PALABRAS PARA DESCRIBIR LA SOLUCIÓN.');
+                if (palabras.length < 5) {
+                    alert('DEBE ESCRIBIR AL MENOS 5 PALABRAS PARA DESCRIBIR LA SOLUCIÓN.');
                     return;
                 }
                 if (!this.ticketIdResolver) return;
@@ -589,7 +589,8 @@
                 this.enviandoResolver = true;
 
                 try {
-                    const response = await fetch(`/tickets/${this.ticketIdResolver}/resolver`, {
+                    //const response = await fetch(`/tickets/${this.ticketIdResolver}/resolver`, {
+                    const response = await fetch(`/soporte/tickets/${this.ticketIdResolver}/resolver`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',

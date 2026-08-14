@@ -59,24 +59,23 @@ class UserController extends Controller
             'email'            => 'required|email|max:255|unique:users,email' // <-- Cambiado a required
         ]);
 
-        // Recolectamos y limpiamos convirtiendo a MAYÚSCULAS para respetar la regla del sistema
-        $paterno = Str::upper(trim($request->apellido_paterno));
-        $materno = Str::upper(trim($request->apellido_materno));
-        $nombres = Str::upper(trim($request->nombres));
-        
-        // ─── SOLUCIÓN AL ERROR: Obtenemos el email del request y lo estandarizamos en minúsculas ───
+        // Recolectamos y limpiamos convirtiendo a minusculas para que el usuario sepa que esta escribiendo correctamente
+        $paterno = Str::lower(trim($request->apellido_paterno));
+        $materno = Str::lower(trim($request->apellido_materno));
+        $nombres = Str::lower(trim($request->nombres));
         $email = Str::lower(trim($request->email)); 
 
         // 2. Formatear el campo 'name' -> "PATERNO MATERNO, NOMBRES"
         $apellidos = trim("$paterno $materno");
-        $fullName = Str::upper("$apellidos, $nombres");
+        $fullName = Str::upper("$nombres, $apellidos");
 
         // 3. Generar el 'username' base (en minúsculas por estándar de red: apellido.nombre)
         $primerApellido = !empty($paterno) ? $paterno : $materno;
-        $primerNombre = explode(' ', $nombres)[0]; 
 
         // Forzamos explícitamente a minúsculas limpia
-        $usernameBase = Str::lower(Str::slug($primerApellido) . '.' . Str::slug($primerNombre));    
+        //$usernameBase = Str::lower(Str::slug($nombres) . '.' . Str::slug($primerApellido));    
+        $usernameBase = Str::slug($nombres . ' ' . $primerApellido, '.');
+
         
         // Validar si el username ya existe y calcular consecutivo numérico
         $username = $usernameBase;
